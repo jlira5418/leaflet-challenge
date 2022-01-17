@@ -12,26 +12,46 @@ function createFeatures(earthquakeData) {
 
     // Define a function that we want to run once for each feature in the features array.
     // Give each feature a popup that describes the place and time of the earthquake.
-    function onEachFeature(feature) {
-        L.circle(feature.geometry.coordinates, {
-            fillOpacity: 0.75,
-            color: "white",
-            fillColor: "purple",
-            // Setting our circle's radius to equal the output of our markerSize() function:
-            // This will make our marker's size proportionate to its population.
-            radius: markerSize(feature.properties.mag)
-        }).bindPopup(`<h1>${feature.properties.place}</h1>`);
+    function getColorPreference(coordinate_depth) {
+        switch (true) {
+            case coordinate_depth > 90:
+                return "#4C0099";
+            case coordinate_depth > 70:
+                return "#6600CC";
+            case coordinate_depth > 50:
+                return "#7F00FF";
+            case coordinate_depth > 30:
+                return "#9933FF";
+            case coordinate_depth > 10:
+                return "#8266FF";
+            default:
+                return "#CC99FF";
+        }
     }
 
     function markerSize(magnitude) {
-        return  50;
+        return Math.sqrt(magnitude) * 10;
     }
 
+    function stylebox(feature) {
+        return {
+            fillOpacity: 0.75,
+            color: "white",
+            fillColor: getColorPreference(feature.geometry.coordinates[2]),
+            radius: markerSize(feature.properties.mag)
+        };
+    }
     // Create a GeoJSON layer that contains the features array on the earthquakeData object.
     // Run the onEachFeature function once for each piece of data in the array.
-    var earthquakes = L.geoJSON(earthquakeData, { onEachFeature: onEachFeature });
-
-    // Send our earthquakes layer to the createMap function/
+    var earthquakes = L.geoJSON(earthquakeData, {
+        pointToLayer: function (feature, latlong) {
+            return L.circleMarker(latlong);
+        },
+        style: stylebox,
+        onEachFeature: function (feature, mylayer) {
+            mylayer.bindPopup(`<h2>Mag: ${feature.properties.mag}</h2> <hr> <h3>Elev: ${feature.geometry.coordinates[2]}</h3> `);
+        }
+    });
     createMap(earthquakes);
 }
 
@@ -63,7 +83,7 @@ function createMap(earthquakes) {
         zoom: 5,
         layers: [street, earthquakes]
     });
-
+    //earthquakes.addTo(myMap);
     // Create a layer control.
     // Pass it our baseMaps and overlayMaps.
     // Add the layer control to the map.
